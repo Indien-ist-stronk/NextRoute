@@ -1,885 +1,1361 @@
-<html>
-<script type="text/python">
-import React, { useMemo, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { motion, AnimatePresence } from "framer-motion";
-import { Brain, ChevronRight, RotateCcw, Target, BarChart3, Sparkles, ShieldCheck } from "lucide-react";
-
-const DOMAIN_META = {
-  tech: {
-    label: "Tech / Computer Science",
-    cluster: "Analytical",
-    description: "Strong fit for coding, systems thinking, automation, software products, and AI-oriented paths.",
-    nextSteps: [
-      "Build one tiny app, calculator, or quiz website in the next 7 days.",
-      "Try a beginner Python or JavaScript course and finish at least one project.",
-      "Speak to a university student or mentor in CS, AI, or software engineering."
-    ],
-    courses: ["Computer Science", "AI & Data Science", "Software Engineering", "Cybersecurity"]
-  },
-  science: {
-    label: "Pure Science",
-    cluster: "Analytical",
-    description: "Strong fit for theory, curiosity, experimentation, research, and deep conceptual understanding.",
-    nextSteps: [
-      "Choose one science topic and create a 1-page research summary.",
-      "Join or watch a science competition, Olympiad, or lab-based project.",
-      "Explore university majors like physics, chemistry, biology, or biotechnology."
-    ],
-    courses: ["Physics", "Chemistry", "Biology", "Biotechnology", "Environmental Science"]
-  },
-  engineering: {
-    label: "Engineering",
-    cluster: "Analytical",
-    description: "Strong fit for applied problem-solving, practical systems, design under constraints, and building solutions.",
-    nextSteps: [
-      "Build or design one simple prototype, model, or technical concept.",
-      "Explore branches like mechanical, civil, electrical, robotics, or mechatronics.",
-      "Try a project where you solve a real-world problem with a working design."
-    ],
-    courses: ["Mechanical Engineering", "Electrical Engineering", "Civil Engineering", "Robotics", "Mechatronics"]
-  },
-  medicine: {
-    label: "Medicine / Health Sciences",
-    cluster: "People-Centric",
-    description: "Strong fit for patient care, responsibility, biological sciences, and long-term professional commitment.",
-    nextSteps: [
-      "Shadow, observe, or interview someone in healthcare if possible.",
-      "Explore medicine, dentistry, pharmacy, physiotherapy, and biomedical pathways.",
-      "Check whether you can sustain long study duration and high responsibility."
-    ],
-    courses: ["Medicine", "Dentistry", "Pharmacy", "Physiotherapy", "Biomedical Sciences"]
-  },
-  psychology: {
-    label: "Psychology / Behavioral Sciences",
-    cluster: "People-Centric",
-    description: "Strong fit for understanding emotions, behavior, patterns of thinking, and supportive human-focused work.",
-    nextSteps: [
-      "Read introductory psychology material and summarize one concept clearly.",
-      "Observe whether you genuinely like listening, understanding, and pattern-spotting in people.",
-      "Explore psychology, counseling-related tracks, behavioral science, and neuroscience pathways."
-    ],
-    courses: ["Psychology", "Behavioral Science", "Neuroscience", "Cognitive Science"]
-  },
-  education: {
-    label: "Education / Teaching",
-    cluster: "People-Centric",
-    description: "Strong fit for explanation, mentoring, clarity-building, and helping others learn step by step.",
-    nextSteps: [
-      "Teach one concept to juniors and check whether you enjoy the process.",
-      "Create one explainer note, short tutorial, or slide deck on a topic you know.",
-      "Explore education, instructional design, academic mentoring, and teaching careers."
-    ],
-    courses: ["Education", "Early Childhood Education", "Special Education", "Instructional Design"]
-  },
-  law: {
-    label: "Law",
-    cluster: "People-Centric",
-    description: "Strong fit for argument, interpretation, language precision, structured reasoning, and advocacy.",
-    nextSteps: [
-      "Write a 500-word argument on a current issue from two sides.",
-      "Try debate, model UN, policy writing, or public speaking activities.",
-      "Explore law, public policy, international relations, and legal studies pathways."
-    ],
-    courses: ["Law", "Legal Studies", "Public Policy", "International Relations"]
-  },
-  arts: {
-    label: "Fine Arts / Creative Fields",
-    cluster: "Creative / Strategic",
-    description: "Strong fit for expression, originality, storytelling, aesthetic thinking, and creative experimentation.",
-    nextSteps: [
-      "Create one real portfolio piece this week: design, writing, music, film, or art.",
-      "Check whether you enjoy creating repeatedly, not only imagining.",
-      "Explore fine arts, media, visual communication, animation, or creative writing."
-    ],
-    courses: ["Fine Arts", "Media Studies", "Animation", "Creative Writing", "Film"]
-  },
-  design: {
-    label: "Design / Architecture",
-    cluster: "Creative / Strategic",
-    description: "Strong fit for visual thinking, structure plus aesthetics, iteration, and turning ideas into designed experiences or spaces.",
-    nextSteps: [
-      "Create one design sample: poster, interface, room layout, product sketch, or 3D idea.",
-      "Explore design tools and basic principles of layout, function, and form.",
-      "Compare architecture, product design, UI/UX, and visual design pathways."
-    ],
-    courses: ["Architecture", "Product Design", "UI/UX Design", "Interior Design", "Visual Communication"]
-  },
-  commerce: {
-    label: "Commerce / Business",
-    cluster: "Creative / Strategic",
-    description: "Strong fit for value creation, strategy, decision-making, markets, enterprise, and resource allocation.",
-    nextSteps: [
-      "Plan a tiny business idea or school initiative with cost, pricing, and value proposition.",
-      "Explore finance, accounting, management, economics, and entrepreneurship.",
-      "Test whether you enjoy decision-making under uncertainty and competition."
-    ],
-    courses: ["Business Administration", "Finance", "Economics", "Accounting", "Entrepreneurship"]
-  },
-  social: {
-    label: "Social Sciences",
-    cluster: "People-Centric",
-    description: "Strong fit for studying society, culture, systems, communities, and real-world human issues at scale.",
-    nextSteps: [
-      "Choose a social issue and analyze causes, stakeholders, and possible solutions.",
-      "Explore sociology, political science, anthropology, development studies, and economics-social policy intersections.",
-      "Check whether you prefer understanding systems of society over one-to-one helping roles."
-    ],
-    courses: ["Sociology", "Political Science", "Anthropology", "Development Studies", "Public Administration"]
-  }
-};
-
-const CLUSTERS = {
-  analytical: ["tech", "science", "engineering"],
-  people: ["medicine", "psychology", "education", "law", "social"],
-  creative: ["arts", "design", "commerce"]
-};
-
-const QUESTIONS = {
-  broad: [
-    {
-      id: "b1",
-      text: "Which type of work naturally pulls you in the most?",
-      options: [
-        { label: "Solving logical or technical problems", scores: { tech: 2, science: 1, engineering: 1 }, nextCluster: "analytical" },
-        { label: "Working directly with people and their needs", scores: { medicine: 1, psychology: 1, education: 1, law: 1, social: 1 }, nextCluster: "people" },
-        { label: "Creating, designing, planning, or building ideas into something visible", scores: { arts: 1, design: 2, commerce: 1 }, nextCluster: "creative" }
-      ]
-    },
-    {
-      id: "b2",
-      text: "Which kind of satisfaction feels strongest to you?",
-      options: [
-        { label: "A system works efficiently because I figured it out", scores: { tech: 2, engineering: 1, commerce: 1 } },
-        { label: "I understood something deeply that others missed", scores: { science: 2, psychology: 1, social: 1 } },
-        { label: "I helped, influenced, taught, or guided people meaningfully", scores: { medicine: 1, education: 2, law: 1, psychology: 1, social: 1 } },
-        { label: "I created something original, elegant, or impactful", scores: { arts: 2, design: 2, commerce: 1 } }
-      ]
-    },
-    {
-      id: "b3",
-      text: "Which type of challenge would you willingly tolerate again and again?",
-      options: [
-        { label: "Debugging, testing, and solving technical errors", scores: { tech: 2, engineering: 1 } },
-        { label: "Studying complex ideas for a long time", scores: { science: 2, medicine: 1, law: 1 } },
-        { label: "People pressure, responsibility, or emotional complexity", scores: { medicine: 2, psychology: 2, education: 1, law: 1, social: 1 } },
-        { label: "Competition, uncertainty, repeated iteration, or subjective judgment", scores: { arts: 1, design: 2, commerce: 2 } }
-      ]
-    }
-  ],
-  analytical: [
-    {
-      id: "a1",
-      text: "Which one excites you most?",
-      options: [
-        { label: "Writing code, automating, or building digital tools", scores: { tech: 3 } },
-        { label: "Understanding why a phenomenon exists", scores: { science: 3 } },
-        { label: "Designing a real-world solution that works", scores: { engineering: 3 } }
-      ]
-    },
-    {
-      id: "a2",
-      text: "Pick the 6-month project you would most likely finish strongly.",
-      options: [
-        { label: "Build an app or software tool", scores: { tech: 3, engineering: 1 } },
-        { label: "Do a research project and analyze findings", scores: { science: 3 } },
-        { label: "Create a product or solve a practical technical problem", scores: { engineering: 3, tech: 1 } }
-      ]
-    },
-    {
-      id: "a3",
-      text: "Which statement sounds most like you?",
-      options: [
-        { label: "I enjoy systems, logic, and digital creation", scores: { tech: 3 } },
-        { label: "I enjoy theory, curiosity, and discovering how things work at a deep level", scores: { science: 3 } },
-        { label: "I enjoy applying knowledge to practical, constrained problems", scores: { engineering: 3 } }
-      ]
-    },
-    {
-      id: "a4",
-      text: "Forced choice: which is more satisfying?",
-      options: [
-        { label: "A working software solution", scores: { tech: 2 } },
-        { label: "A correct explanation of a natural phenomenon", scores: { science: 2 } },
-        { label: "A functional design that solves a real need", scores: { engineering: 2 } }
-      ]
-    }
-  ],
-  people: [
-    {
-      id: "p1",
-      text: "Which role feels most natural to you?",
-      options: [
-        { label: "Treating physical health needs", scores: { medicine: 3 } },
-        { label: "Understanding emotions and behavior", scores: { psychology: 3 } },
-        { label: "Explaining clearly and helping others learn", scores: { education: 3 } },
-        { label: "Arguing, interpreting, and defending positions", scores: { law: 3 } },
-        { label: "Studying society, policy, and large human systems", scores: { social: 3 } }
-      ]
-    },
-    {
-      id: "p2",
-      text: "Choose the project you would most likely complete well.",
-      options: [
-        { label: "Observe, support, or explore healthcare-related work", scores: { medicine: 3 } },
-        { label: "Analyze why people think, feel, or behave in certain ways", scores: { psychology: 3 } },
-        { label: "Teach a concept or mentor younger students", scores: { education: 3 } },
-        { label: "Research a public issue and argue a position", scores: { law: 3, social: 1 } },
-        { label: "Study a community problem and propose system-level solutions", scores: { social: 3, law: 1 } }
-      ]
-    },
-    {
-      id: "p3",
-      text: "Which type of effort can you tolerate for years?",
-      options: [
-        { label: "Long study and high responsibility", scores: { medicine: 3 } },
-        { label: "Listening deeply and carrying emotional complexity", scores: { psychology: 3 } },
-        { label: "Repeating explanations until others understand", scores: { education: 3 } },
-        { label: "Conflict, debate, and pressure to defend arguments", scores: { law: 3 } },
-        { label: "Ambiguity in social systems and public issues", scores: { social: 3 } }
-      ]
-    },
-    {
-      id: "p4",
-      text: "Forced choice: what gives you stronger satisfaction?",
-      options: [
-        { label: "Helping one person directly", scores: { medicine: 2, psychology: 1 } },
-        { label: "Changing how people understand something", scores: { education: 2, law: 1 } },
-        { label: "Understanding society and influencing larger systems", scores: { social: 2, law: 1 } },
-        { label: "Making a strong case with logic and language", scores: { law: 2 } }
-      ]
-    }
-  ],
-  creative: [
-    {
-      id: "c1",
-      text: "Which direction fits best?",
-      options: [
-        { label: "Expressing ideas, stories, visuals, or emotions creatively", scores: { arts: 3 } },
-        { label: "Designing spaces, products, interfaces, or structured visuals", scores: { design: 3 } },
-        { label: "Building value through strategy, money, markets, or enterprise", scores: { commerce: 3 } }
-      ]
-    },
-    {
-      id: "c2",
-      text: "Choose the project you would most likely sustain for 6 months.",
-      options: [
-        { label: "Create a portfolio of art, media, writing, film, or music", scores: { arts: 3 } },
-        { label: "Design a product, building concept, interface, or visual system", scores: { design: 3 } },
-        { label: "Launch a mini venture or business concept", scores: { commerce: 3 } }
-      ]
-    },
-    {
-      id: "c3",
-      text: "Which trade-off are you most willing to accept?",
-      options: [
-        { label: "Subjective feedback and creative uncertainty", scores: { arts: 3 } },
-        { label: "Repeated iteration to balance beauty and function", scores: { design: 3 } },
-        { label: "Competition, risk, and decision pressure", scores: { commerce: 3 } }
-      ]
-    },
-    {
-      id: "c4",
-      text: "Forced choice: which is more satisfying?",
-      options: [
-        { label: "A unique creative output", scores: { arts: 2 } },
-        { label: "A clean, effective design", scores: { design: 2 } },
-        { label: "A strategy that creates measurable value", scores: { commerce: 2 } }
-      ]
-    }
-  ],
-  cross: [
-    {
-      id: "x1",
-      text: "In the last 6 months, what have you actually done most consistently?",
-      options: [
-        { label: "Built or explored tech tools, coding, or digital systems", scores: { tech: 3 } },
-        { label: "Read deeply, researched topics, or explored scientific ideas", scores: { science: 3 } },
-        { label: "Built, fixed, or designed practical solutions", scores: { engineering: 3 } },
-        { label: "Helped people in health, care, or biology-related interests", scores: { medicine: 3 } },
-        { label: "Listened to problems, reflected on behavior, or explored the mind", scores: { psychology: 3 } },
-        { label: "Explained concepts, guided classmates, or taught others", scores: { education: 3 } },
-        { label: "Debated, argued, or followed legal/social issues", scores: { law: 3, social: 1 } },
-        { label: "Created art, media, writing, or expressive work", scores: { arts: 3 } },
-        { label: "Designed layouts, visuals, interfaces, or spatial ideas", scores: { design: 3 } },
-        { label: "Planned business ideas, pricing, value, or strategy", scores: { commerce: 3 } },
-        { label: "Analyzed society, communities, or public issues", scores: { social: 3 } }
-      ]
-    },
-    {
-      id: "x2",
-      text: "Which type of university workload sounds most sustainable for you?",
-      options: [
-        { label: "Projects, systems, logic, and technical problem-solving", scores: { tech: 2, engineering: 2 } },
-        { label: "Deep reading, theory, and research", scores: { science: 2, law: 1, social: 1 } },
-        { label: "Long study with human responsibility", scores: { medicine: 2, psychology: 1, education: 1 } },
-        { label: "Creative portfolio work and iteration", scores: { arts: 2, design: 2 } },
-        { label: "Strategy, markets, decisions, and uncertainty", scores: { commerce: 2 } }
-      ]
-    },
-    {
-      id: "x3",
-      text: "Which statement best describes your strongest edge?",
-      options: [
-        { label: "I think logically and like systems", scores: { tech: 2, engineering: 1 } },
-        { label: "I am deeply curious and like understanding why things happen", scores: { science: 2 } },
-        { label: "I can stay calm with responsibility and people", scores: { medicine: 2, psychology: 1, education: 1 } },
-        { label: "I use language, explanation, or argument strongly", scores: { law: 2, education: 1, social: 1 } },
-        { label: "I notice form, aesthetics, and original expression", scores: { arts: 2, design: 2 } },
-        { label: "I notice opportunity, value, and decisions", scores: { commerce: 2 } }
-      ]
-    },
-    {
-      id: "x4",
-      text: "Which type of future role sounds closest to your natural direction?",
-      options: [
-        { label: "Builder of digital systems", scores: { tech: 2 } },
-        { label: "Researcher or scientist", scores: { science: 2 } },
-        { label: "Problem-solving engineer", scores: { engineering: 2 } },
-        { label: "Healthcare professional", scores: { medicine: 2 } },
-        { label: "Behavior or people specialist", scores: { psychology: 2 } },
-        { label: "Teacher, explainer, or mentor", scores: { education: 2 } },
-        { label: "Law, advocacy, or policy professional", scores: { law: 2, social: 1 } },
-        { label: "Artist, media creator, or storyteller", scores: { arts: 2 } },
-        { label: "Designer or architect", scores: { design: 2 } },
-        { label: "Business, finance, or entrepreneurship professional", scores: { commerce: 2 } },
-        { label: "Social systems or public impact professional", scores: { social: 2 } }
-      ]
-    }
-  ],
-  impact: [
-    {
-      id: "i1",
-      text: "Before this assessment, how much career clarity did you have?",
-      options: [
-        { label: "High clarity", valueOnly: "high" },
-        { label: "Some clarity", valueOnly: "some" },
-        { label: "Low clarity", valueOnly: "low" }
-      ]
-    },
-    {
-      id: "i2",
-      text: "After this assessment, do you feel clearer about your direction?",
-      options: [
-        { label: "Yes, much clearer", valueOnly: "high" },
-        { label: "Somewhat clearer", valueOnly: "some" },
-        { label: "Not really", valueOnly: "low" }
-      ]
-    },
-    {
-      id: "i3",
-      text: "Will you explore the suggested direction further?",
-      options: [
-        { label: "Yes", valueOnly: "yes" },
-        { label: "Maybe", valueOnly: "maybe" },
-        { label: "No", valueOnly: "no" }
-      ]
-    }
-  ]
-};
-
-function normalizeScores(scores) {
-  const max = Math.max(...Object.values(scores), 1);
-  const result = {};
-  Object.entries(scores).forEach(([k, v]) => {
-    result[k] = Math.round((v / max) * 100);
-  });
-  return result;
-}
-
-function sortDomains(scores) {
-  return Object.entries(scores).sort((a, b) => b[1] - a[1]);
-}
-
-function mergeScores(prev, next) {
-  const merged = { ...prev };
-  Object.entries(next || {}).forEach(([k, v]) => {
-    merged[k] = (merged[k] || 0) + v;
-  });
-  return merged;
-}
-
-function getLikelyCluster(scores) {
-  const sums = {
-    analytical: CLUSTERS.analytical.reduce((acc, d) => acc + (scores[d] || 0), 0),
-    people: CLUSTERS.people.reduce((acc, d) => acc + (scores[d] || 0), 0),
-    creative: CLUSTERS.creative.reduce((acc, d) => acc + (scores[d] || 0), 0)
-  };
-  return Object.entries(sums).sort((a, b) => b[1] - a[1])[0][0];
-}
-
-function buildResults(scores, freeText) {
-  const normalized = normalizeScores(scores);
-  const ranked = sortDomains(normalized);
-  const top3 = ranked.slice(0, 3).map(([key, score]) => ({ key, score, ...DOMAIN_META[key] }));
-  const primary = top3[0];
-  const secondary = top3[1];
-  const tertiary = top3[2];
-  const recommendationText = `You show the strongest alignment with ${primary.label}. ${secondary ? `Your next closest match is ${secondary.label}. ` : ""}${tertiary ? `A third adjacent direction is ${tertiary.label}.` : ""}`;
-
-  const explanation = [
-    `Primary cluster: ${DOMAIN_META[primary.key].cluster}`,
-    `${primary.label} stands out because your pattern suggests repeatable motivation, fit with its workload, and tolerance for its core challenges.`
-  ];
-
-  if (freeText) {
-    explanation.push(`Your own reflection also adds context: "${freeText}"`);
-  }
-
-  return { normalized, top3, recommendationText, explanation };
-}
-
-function saveAnonymousAnalytics(payload) {
-  try {
-    const existing = JSON.parse(localStorage.getItem("career_assessment_analytics") || "[]");
-    existing.push({ ...payload, timestamp: new Date().toISOString() });
-    localStorage.setItem("career_assessment_analytics", JSON.stringify(existing));
-  } catch (e) {
-    console.error("Analytics save failed", e);
-  }
-}
-
-export default function CareerDirectionAdaptiveApp() {
-  const [started, setStarted] = useState(false);
-  const [stepIndex, setStepIndex] = useState(0);
-  const [stage, setStage] = useState("broad");
-  const [answers, setAnswers] = useState({});
-  const [scores, setScores] = useState({
-    tech: 0,
-    science: 0,
-    engineering: 0,
-    medicine: 0,
-    psychology: 0,
-    education: 0,
-    law: 0,
-    arts: 0,
-    design: 0,
-    commerce: 0,
-    social: 0
-  });
-  const [branch, setBranch] = useState(null);
-  const [selected, setSelected] = useState("");
-  const [clarityBefore, setClarityBefore] = useState("");
-  const [clarityAfter, setClarityAfter] = useState("");
-  const [exploreFurther, setExploreFurther] = useState("");
-  const [reflection, setReflection] = useState("");
-  const [finished, setFinished] = useState(false);
-
-  const currentQuestionSet = stage === "broad"
-    ? QUESTIONS.broad
-    : stage === "branch"
-      ? QUESTIONS[branch]
-      : stage === "cross"
-        ? QUESTIONS.cross
-        : QUESTIONS.impact;
-
-  const currentQuestion = currentQuestionSet[stepIndex];
-
-  const totalSteps = QUESTIONS.broad.length + 4 + QUESTIONS.cross.length + QUESTIONS.impact.length;
-  const progress = finished
-    ? 100
-    : Math.round(((Object.keys(answers).length + (clarityBefore ? 1 : 0) + (clarityAfter ? 1 : 0) + (exploreFurther ? 1 : 0)) / totalSteps) * 100);
-
-  const results = useMemo(() => buildResults(scores, reflection), [scores, reflection]);
-
-  function handleAnswer(option) {
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: option.label }));
-    setScores((prev) => mergeScores(prev, option.scores));
-
-    if (stage === "broad" && currentQuestion.id === "b1" && option.nextCluster) {
-      setBranch(option.nextCluster);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Career Direction Compass</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --bg-accent: #e8eefc;
+      --surface: rgba(255, 255, 255, 0.88);
+      --surface-strong: #ffffff;
+      --line: rgba(24, 37, 66, 0.12);
+      --text: #16213d;
+      --muted: #58627a;
+      --primary: #0f766e;
+      --primary-deep: #0b525b;
+      --secondary: #f59e0b;
+      --highlight: #2563eb;
+      --shadow: 0 24px 50px rgba(15, 23, 42, 0.12);
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --transition: 220ms ease;
+      --max-width: 1024px;
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
     }
 
-    setSelected("");
-
-    const lastIndex = currentQuestionSet.length - 1;
-    if (stepIndex < lastIndex) {
-      setStepIndex(stepIndex + 1);
-      return;
+    * {
+      box-sizing: border-box;
     }
 
-    if (stage === "broad") {
-      const chosenBranch = branch || option.nextCluster || getLikelyCluster(mergeScores(scores, option.scores));
-      setBranch(chosenBranch);
-      setStage("branch");
-      setStepIndex(0);
-      return;
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(37, 99, 235, 0.15), transparent 32%),
+        radial-gradient(circle at top right, rgba(245, 158, 11, 0.14), transparent 26%),
+        linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
     }
 
-    if (stage === "branch") {
-      setStage("cross");
-      setStepIndex(0);
-      return;
+    .page-shell {
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 32px 18px 48px;
     }
 
-    if (stage === "cross") {
-      setStage("impact");
-      setStepIndex(0);
-      return;
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+      margin-bottom: 22px;
     }
 
-    if (stage === "impact") {
-      setFinished(true);
-    }
-  }
-
-  function handleImpactAnswer(option) {
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: option.label }));
-    if (currentQuestion.id === "i1") setClarityBefore(option.valueOnly);
-    if (currentQuestion.id === "i2") setClarityAfter(option.valueOnly);
-    if (currentQuestion.id === "i3") setExploreFurther(option.valueOnly);
-
-    setSelected("");
-
-    const lastIndex = QUESTIONS.impact.length - 1;
-    if (stepIndex < lastIndex) {
-      setStepIndex(stepIndex + 1);
-      return;
+    .hero-card,
+    .info-card,
+    .app-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
     }
 
-    const payload = {
-      primary: results.top3[0]?.key,
-      secondary: results.top3[1]?.key,
-      tertiary: results.top3[2]?.key,
-      clarityBefore: currentQuestion.id === "i1" ? option.valueOnly : clarityBefore,
-      clarityAfter: currentQuestion.id === "i2" ? option.valueOnly : clarityAfter,
-      exploreFurther: currentQuestion.id === "i3" ? option.valueOnly : exploreFurther,
-      normalizedScores: results.normalized
-    };
-    saveAnonymousAnalytics(payload);
-    setFinished(true);
-  }
+    .hero-card {
+      padding: 28px;
+      position: relative;
+      overflow: hidden;
+    }
 
-  function resetAll() {
-    setStarted(false);
-    setStepIndex(0);
-    setStage("broad");
-    setAnswers({});
-    setScores({
-      tech: 0,
-      science: 0,
-      engineering: 0,
-      medicine: 0,
-      psychology: 0,
-      education: 0,
-      law: 0,
-      arts: 0,
-      design: 0,
-      commerce: 0,
-      social: 0
-    });
-    setBranch(null);
-    setSelected("");
-    setClarityBefore("");
-    setClarityAfter("");
-    setExploreFurther("");
-    setReflection("");
-    setFinished(false);
-  }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      right: -60px;
+      top: -50px;
+      width: 180px;
+      height: 180px;
+      background: linear-gradient(145deg, rgba(15, 118, 110, 0.22), rgba(37, 99, 235, 0.1));
+      border-radius: 36px;
+      transform: rotate(24deg);
+    }
 
-  return (
-    <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="grid gap-4 md:grid-cols-[1.4fr_0.8fr]"
-        >
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <div className="rounded-2xl border p-2">
-                  <Brain className="h-6 w-6" />
-                </div>
-                <div>
-                  <CardTitle className="text-2xl">Adaptive Career Direction Assessment</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    A student-friendly web app to identify stronger university direction patterns using adaptive questions, scoring, and action-based recommendations.
-                  </p>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="secondary">Adaptive Flow</Badge>
-                <Badge variant="secondary">Anonymous Analytics</Badge>
-                <Badge variant="secondary">Career Recommendations</Badge>
-                <Badge variant="secondary">Grade 11 Friendly</Badge>
-              </div>
-              <div className="grid gap-3 md:grid-cols-3">
-                <div className="rounded-2xl border p-4">
-                  <Target className="h-5 w-5 mb-2" />
-                  <p className="font-medium">Targeted branching</p>
-                  <p className="text-sm text-muted-foreground">The app changes question flow based on initial answers.</p>
-                </div>
-                <div className="rounded-2xl border p-4">
-                  <Sparkles className="h-5 w-5 mb-2" />
-                  <p className="font-medium">Action recommendations</p>
-                  <p className="text-sm text-muted-foreground">Each result includes next steps and matching degree options.</p>
-                </div>
-                <div className="rounded-2xl border p-4">
-                  <ShieldCheck className="h-5 w-5 mb-2" />
-                  <p className="font-medium">Privacy-aware</p>
-                  <p className="text-sm text-muted-foreground">No personal identifiers are required; analytics can stay anonymous.</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+    .eyebrow {
+      display: inline-flex;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.11);
+      color: var(--primary-deep);
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
 
-          <Card className="rounded-2xl shadow-sm">
-            <CardHeader>
-              <CardTitle className="text-lg">How it works</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm text-muted-foreground">
-              <p>1. Broad questions identify a likely cluster.</p>
-              <p>2. The app branches into a more specific stream path.</p>
-              <p>3. Cross-validation checks real behavior and fit.</p>
-              <p>4. The result shows top directions, explanations, and next steps.</p>
-              <p>5. Anonymous impact data can be stored locally now, then later upgraded to Firebase or Supabase.</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+    h1, h2, h3 {
+      margin: 0;
+    }
 
-        {started && !finished && (
-          <Card className="rounded-2xl shadow-sm">
-            <CardContent className="pt-6 space-y-3">
-              <div className="flex items-center justify-between text-sm">
-                <span>Progress</span>
-                <span>{progress}%</span>
-              </div>
-              <Progress value={progress} />
-            </CardContent>
-          </Card>
-        )}
+    .hero-card h1 {
+      margin-top: 16px;
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      line-height: 1.02;
+      max-width: 11ch;
+      position: relative;
+      z-index: 1;
+    }
 
-        <AnimatePresence mode="wait">
-          {!started ? (
-            <motion.div
-              key="start"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <Card className="rounded-2xl shadow-sm">
-                <CardContent className="pt-6 space-y-5">
-                  <div>
-                    <h2 className="text-xl font-semibold">Before students begin</h2>
-                    <p className="text-sm text-muted-foreground mt-2">
-                      This tool guides direction. It does not decide a career with absolute certainty. It works best as an early decision-support system and should be paired with real-world exploration.
-                    </p>
-                  </div>
+    .hero-card p {
+      position: relative;
+      z-index: 1;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.65;
+      max-width: 60ch;
+      margin: 16px 0 0;
+    }
 
-                  <div className="rounded-2xl border p-4">
-                    <p className="font-medium mb-2">Suggested instructions</p>
-                    <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                      <li>Answer honestly based on what you would sustain, not what sounds impressive.</li>
-                      <li>Choose what fits your repeated behavior, not your ideal self.</li>
-                      <li>No names or email addresses are required.</li>
-                    </ul>
-                  </div>
+    .info-grid {
+      display: grid;
+      gap: 18px;
+    }
 
-                  <Button onClick={() => setStarted(true)} className="rounded-2xl">
-                    Start Assessment <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : !finished ? (
-            <motion.div
-              key={`${stage}-${stepIndex}`}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-            >
-              <Card className="rounded-2xl shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-xl">{currentQuestion?.text}</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {stage === "broad" && "Initial classification"}
-                    {stage === "branch" && `Focused branch: ${branch === "analytical" ? "Analytical" : branch === "people" ? "People-Centric" : "Creative / Strategic"}`}
-                    {stage === "cross" && "Cross-validation and fit check"}
-                    {stage === "impact" && "Anonymous impact tracking"}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-5">
-                  <RadioGroup value={selected} onValueChange={setSelected} className="space-y-3">
-                    {currentQuestion?.options.map((option) => (
-                      <div key={option.label} className="flex items-start space-x-3 rounded-2xl border p-4">
-                        <RadioGroupItem value={option.label} id={option.label} className="mt-1" />
-                        <Label htmlFor={option.label} className="cursor-pointer text-sm leading-6">
-                          {option.label}
-                        </Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
+    .info-card {
+      padding: 20px;
+    }
 
-                  {stage === "cross" && currentQuestion?.id === "x4" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="reflection">Optional reflection: what made you choose that?</Label>
-                      <Textarea
-                        id="reflection"
-                        placeholder="Write a short sentence about what feels most natural to you..."
-                        value={reflection}
-                        onChange={(e) => setReflection(e.target.value)}
-                        className="min-h-[100px] rounded-2xl"
-                      />
-                    </div>
-                  )}
+    .info-card h2 {
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
 
-                  <Button
-                    className="rounded-2xl"
-                    disabled={!selected}
-                    onClick={() => {
-                      const option = currentQuestion.options.find((o) => o.label === selected);
-                      if (!option) return;
-                      if (stage === "impact") {
-                        handleImpactAnswer(option);
-                      } else {
-                        handleAnswer(option);
-                      }
-                    }}
-                  >
-                    Continue <ChevronRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="results"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                <Card className="rounded-2xl shadow-sm">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <BarChart3 className="h-6 w-6" />
-                      <div>
-                        <CardTitle className="text-2xl">Your adaptive result</CardTitle>
-                        <p className="text-sm text-muted-foreground mt-1">This is a directional recommendation, not a final life decision.</p>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="rounded-2xl border p-5">
-                      <p className="text-sm text-muted-foreground">Primary match</p>
-                      <h2 className="text-2xl font-semibold mt-1">{results.top3[0]?.label}</h2>
-                      <p className="text-sm text-muted-foreground mt-2">{results.top3[0]?.description}</p>
-                      <Badge className="mt-3 rounded-xl">Match score: {results.top3[0]?.score}%</Badge>
-                    </div>
+    .info-card p,
+    .info-card li {
+      color: var(--muted);
+      line-height: 1.5;
+      margin: 0;
+    }
 
-                    <div className="grid gap-4 md:grid-cols-3">
-                      {results.top3.map((item, idx) => (
-                        <div key={item.key} className="rounded-2xl border p-4">
-                          <p className="text-xs uppercase tracking-wide text-muted-foreground">{idx === 0 ? "Primary" : idx === 1 ? "Secondary" : "Third"}</p>
-                          <p className="font-medium mt-2">{item.label}</p>
-                          <p className="text-sm text-muted-foreground mt-2">{item.score}% fit</p>
-                        </div>
-                      ))}
-                    </div>
+    .mini-list {
+      padding-left: 18px;
+      margin: 10px 0 0;
+    }
 
-                    <div>
-                      <h3 className="font-semibold mb-2">Why this result</h3>
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        {results.explanation.map((line) => (
-                          <p key={line}>{line}</p>
-                        ))}
-                      </div>
-                    </div>
+    .app-card {
+      padding: 24px;
+    }
 
-                    <div>
-                      <h3 className="font-semibold mb-2">Suggested university directions</h3>
-                      <div className="flex flex-wrap gap-2">
-                        {results.top3.flatMap((item) => item.courses.slice(0, 2)).slice(0, 6).map((course) => (
-                          <Badge key={course} variant="secondary" className="rounded-xl">{course}</Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
 
-                <div className="space-y-6">
-                  <Card className="rounded-2xl shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Recommended next steps</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <ol className="list-decimal pl-5 space-y-2 text-sm text-muted-foreground">
-                        {results.top3[0]?.nextSteps.map((step) => (
-                          <li key={step}>{step}</li>
-                        ))}
-                      </ol>
-                    </CardContent>
-                  </Card>
+    .progress-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 220px;
+    }
 
-                  <Card className="rounded-2xl shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Top score map</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {sortDomains(results.normalized).slice(0, 6).map(([key, value]) => (
-                        <div key={key}>
-                          <div className="mb-1 flex items-center justify-between text-sm">
-                            <span>{DOMAIN_META[key].label}</span>
-                            <span>{value}%</span>
-                          </div>
-                          <Progress value={value} />
-                        </div>
-                      ))}
-                    </CardContent>
-                  </Card>
+    .progress-label {
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
 
-                  <Card className="rounded-2xl shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="text-lg">Start over</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <Button variant="outline" onClick={resetAll} className="rounded-2xl w-full">
-                        <RotateCcw className="mr-2 h-4 w-4" /> Reset assessment
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, 0.1);
+      overflow: hidden;
+    }
 
-        <Card className="rounded-2xl shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg">Developer notes for your next upgrade</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-2 text-sm text-muted-foreground">
-            <div className="rounded-2xl border p-4">
-              <p className="font-medium text-foreground mb-2">Current version includes</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Adaptive branching by cluster</li>
-                <li>Weighted domain scoring</li>
-                <li>Top 3 stream recommendations</li>
-                <li>Anonymous analytics in localStorage</li>
-              </ul>
-            </div>
-            <div className="rounded-2xl border p-4">
-              <p className="font-medium text-foreground mb-2">Recommended future upgrade</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Connect Firebase or Supabase to collect school-wide anonymous usage stats</li>
-                <li>Add admin dashboard for stream distribution and clarity improvement</li>
-                <li>Add contradiction detection questions for stronger reliability</li>
-                <li>Add country-specific university suggestions later</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--primary) 0%, var(--highlight) 100%);
+      transition: width 320ms ease;
+    }
+
+    .utility-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      font-size: 0.96rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform var(--transition), background var(--transition), color var(--transition), box-shadow var(--transition);
+    }
+
+    .button:hover,
+    .button:focus-visible {
+      transform: translateY(-1px);
+    }
+
+    .button-primary {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--highlight) 100%);
+      color: #fff;
+      box-shadow: 0 14px 24px rgba(37, 99, 235, 0.18);
+    }
+
+    .button-secondary {
+      background: rgba(22, 33, 61, 0.08);
+      color: var(--text);
+    }
+
+    .stage {
+      min-height: 420px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel {
+      background: var(--surface-strong);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(24, 37, 66, 0.08);
+      padding: 28px;
+      animation: fadeSlide 320ms ease;
+    }
+
+    @keyframes fadeSlide {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .intro-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      margin-top: 22px;
+    }
+
+    .intro-pill {
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+      border: 1px solid rgba(37, 99, 235, 0.09);
+    }
+
+    .intro-pill strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .question-tag,
+    .result-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.12);
+      color: #9a5800;
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+    }
+
+    .question-title {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      line-height: 1.15;
+      margin-bottom: 12px;
+    }
+
+    .question-copy {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 24px;
+      max-width: 60ch;
+    }
+
+    .options-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .option-card {
+      text-align: left;
+      width: 100%;
+      background: linear-gradient(180deg, #ffffff 0%, #f6faff 100%);
+      border: 1px solid rgba(37, 99, 235, 0.12);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      cursor: pointer;
+      transition: border-color var(--transition), transform var(--transition), box-shadow var(--transition);
+    }
+
+    .option-card:hover,
+    .option-card:focus-visible {
+      border-color: rgba(15, 118, 110, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(15, 118, 110, 0.1);
+    }
+
+    .option-card strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    .option-card span {
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .branch-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 18px 0 0;
+    }
+
+    .branch-chip {
+      border-radius: 999px;
+      background: rgba(22, 33, 61, 0.06);
+      color: var(--muted);
+      font-size: 0.86rem;
+      padding: 8px 12px;
+    }
+
+    .result-hero {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .result-main {
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      background: linear-gradient(135deg, rgba(15, 118, 110, 0.11), rgba(37, 99, 235, 0.1));
+      border: 1px solid rgba(15, 118, 110, 0.12);
+    }
+
+    .result-main h2 {
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      margin: 12px 0 10px;
+    }
+
+    .result-main p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .percent-badge {
+      display: inline-flex;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--primary-deep);
+      font-weight: 800;
+      margin-top: 16px;
+      font-size: 1.15rem;
+    }
+
+    .result-sidebar {
+      display: grid;
+      gap: 14px;
+    }
+
+    .result-card,
+    .insight-card,
+    .impact-card,
+    .history-card {
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background: #fff;
+      border: 1px solid rgba(24, 37, 66, 0.08);
+    }
+
+    .top-three {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .stream-card {
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(24, 37, 66, 0.08);
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+
+    .stream-card h3 {
+      margin-bottom: 8px;
+    }
+
+    .stream-meta {
+      color: var(--primary-deep);
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .stream-card p,
+    .stream-card li,
+    .insight-card li,
+    .impact-card li,
+    .history-card p {
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .card-list {
+      padding-left: 18px;
+      margin: 10px 0 0;
+    }
+
+    .graph {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      gap: 8px;
+    }
+
+    .bar-label {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .bar-track {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(22, 33, 61, 0.08);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--secondary) 0%, var(--highlight) 100%);
+      transition: width 420ms ease;
+    }
+
+    .impact-form {
+      display: grid;
+      gap: 16px;
+      margin-top: 22px;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-group label {
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .field-group select {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid rgba(24, 37, 66, 0.14);
+      padding: 12px 14px;
+      font-size: 0.96rem;
+      background: #fff;
+      color: var(--text);
+    }
+
+    .impact-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .impact-status {
+      font-size: 0.95rem;
+      color: var(--primary-deep);
+      min-height: 1.3em;
+    }
+
+    .footer-note {
+      margin-top: 20px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .result-hero,
+      .intro-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        padding: 20px 14px 36px;
+      }
+
+      .hero-card,
+      .info-card,
+      .app-card,
+      .panel {
+        padding: 20px;
+      }
+
+      .top-bar {
+        align-items: stretch;
+      }
+
+      .utility-actions,
+      .impact-actions {
+        width: 100%;
+      }
+
+      .button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page-shell">
+    <section class="hero">
+      <article class="hero-card">
+        <span class="eyebrow">Grade 11 Career Explorer</span>
+        <h1>Find a direction that actually fits you.</h1>
+        <p>
+          This adaptive assessment asks broad questions first, then deepens into pathways that match your interests and strengths.
+          You will see one question at a time, build a weighted score across career streams, and finish with a practical shortlist.
+        </p>
+      </article>
+
+      <div class="info-grid">
+        <article class="info-card">
+          <h2>How it works</h2>
+          <p>Start with broad preference questions, then move into branch-specific prompts for analytical, people-focused, and creative or strategic pathways.</p>
+        </article>
+        <article class="info-card">
+          <h2>Streams included</h2>
+          <ul class="mini-list">
+            <li>Tech, Engineering, Pure Science, Medicine</li>
+            <li>Law, Psychology, Education, Business</li>
+            <li>Fine Arts, Design / Architecture, Social Sciences</li>
+          </ul>
+        </article>
       </div>
-    </div>
-  );
-}
-</script>
+    </section>
+
+    <main class="app-card">
+      <div class="top-bar">
+        <div class="progress-meta">
+          <strong id="progressText">Ready to begin</strong>
+          <div class="progress-label" id="progressLabel">0 of 0 questions answered</div>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+        </div>
+        <div class="utility-actions">
+          <button class="button button-secondary" id="resetButton" type="button">Reset Assessment</button>
+        </div>
+      </div>
+
+      <section class="stage" id="appStage" aria-live="polite"></section>
+    </main>
+  </div>
+
+  <script>
+    // Questions data
+    const streamInfo = {
+      tech: {
+        label: "Tech / Computer Science",
+        explanation: "You showed strong interest in systems, logic, digital problem-solving, and building solutions with code or computing tools.",
+        courses: ["Computer Science", "Software Engineering", "Data Science", "Artificial Intelligence"],
+        actions: ["Try a beginner coding project or app challenge", "Explore school clubs in robotics or programming", "Research university pathways in computing and AI"]
+      },
+      engineering: {
+        label: "Engineering",
+        explanation: "Your responses suggest you enjoy structured problem-solving, applied maths and science, and designing practical solutions for the real world.",
+        courses: ["Mechanical Engineering", "Civil Engineering", "Electrical Engineering", "Mechatronics"],
+        actions: ["Build a hands-on prototype or model", "Look into engineering competitions or STEM fairs", "Compare engineering specializations before Grade 12 subject choices"]
+      },
+      pureScience: {
+        label: "Pure Science",
+        explanation: "You appear curious about how the world works at a deeper level and are motivated by investigation, evidence, and scientific discovery.",
+        courses: ["Physics", "Chemistry", "Biology", "Environmental Science"],
+        actions: ["Join or start a science research project", "Read about university lab-based programs", "Strengthen advanced maths and science foundations"]
+      },
+      medicine: {
+        label: "Medicine / Health Sciences",
+        explanation: "You seem drawn to helping people through science, health, and careful decision-making in high-responsibility environments.",
+        courses: ["Medicine", "Biomedical Sciences", "Nursing", "Public Health"],
+        actions: ["Shadow or interview a health professional if possible", "Explore biology and health science enrichment", "Review admission requirements for medical and allied health courses"]
+      },
+      law: {
+        label: "Law",
+        explanation: "Your answers suggest strength in argumentation, fairness, structured reasoning, and understanding rules, systems, and social impact.",
+        courses: ["Law", "Political Science", "International Relations", "Criminology"],
+        actions: ["Practice debating or model UN", "Follow real legal or policy case studies", "Research pre-law style undergraduate options and admissions expectations"]
+      },
+      psychology: {
+        label: "Psychology",
+        explanation: "You seem interested in behavior, emotions, motivation, and understanding how people think, grow, and respond.",
+        courses: ["Psychology", "Counselling", "Behavioral Science", "Neuroscience"],
+        actions: ["Explore introductory psychology resources", "Volunteer in peer support or community settings", "Look into career paths like counselling, clinical, or organizational psychology"]
+      },
+      education: {
+        label: "Education",
+        explanation: "You appear motivated by mentoring, explaining ideas clearly, and helping others develop confidence and skills.",
+        courses: ["Education", "Early Childhood Education", "Special Education", "Subject Teaching Pathways"],
+        actions: ["Tutor someone in a subject you enjoy", "Observe how great teachers structure lessons", "Research teaching specializations and qualification routes"]
+      },
+      commerce: {
+        label: "Commerce / Business",
+        explanation: "You showed interest in strategy, leadership, entrepreneurship, decision-making, and understanding how organizations grow and operate.",
+        courses: ["Business Administration", "Finance", "Marketing", "Economics"],
+        actions: ["Start a small business or school initiative", "Follow business case studies or startup stories", "Compare university options in business, economics, and management"]
+      },
+      fineArts: {
+        label: "Fine Arts",
+        explanation: "Your responses point to strong artistic expression, originality, and comfort using visual or creative work to communicate ideas and emotion.",
+        courses: ["Fine Arts", "Visual Arts", "Animation", "Illustration"],
+        actions: ["Build a portfolio of your best creative work", "Visit galleries or follow working artists", "Explore course requirements for studio-based programs"]
+      },
+      designArchitecture: {
+        label: "Design / Architecture",
+        explanation: "You seem to enjoy blending creativity with structure, designing spaces or products, and thinking visually with purpose and precision.",
+        courses: ["Architecture", "Interior Design", "Industrial Design", "Urban Design"],
+        actions: ["Create a design or architecture portfolio starter", "Study how spaces or products solve user problems", "Explore software and sketching tools used in design fields"]
+      },
+      socialSciences: {
+        label: "Social Sciences",
+        explanation: "You appear curious about people, society, systems, culture, and how large-scale human issues can be researched and understood.",
+        courses: ["Sociology", "Anthropology", "International Relations", "Development Studies"],
+        actions: ["Read on social issues from multiple perspectives", "Join projects with community impact", "Explore degrees linking research, policy, and public service"]
+      }
+    };
+
+    const streams = Object.keys(streamInfo);
+
+    const questions = {
+      broad: [
+        {
+          id: "broad-1",
+          text: "Which kind of challenge feels most energizing to you?",
+          description: "Your answer guides the first adaptive branch of questions.",
+          options: [
+            { label: "Solving technical or scientific problems", detail: "I enjoy logic, systems, research, and figuring out how things work.", branch: "analytical", scores: { tech: 3, engineering: 3, pureScience: 3 } },
+            { label: "Helping or understanding people", detail: "I am drawn to support, communication, health, fairness, or behavior.", branch: "people", scores: { medicine: 3, psychology: 3, education: 2, law: 2, socialSciences: 1 } },
+            { label: "Creating ideas, designs, or strategies", detail: "I like inventing, designing, branding, planning, or expressing ideas visually.", branch: "creative", scores: { fineArts: 3, designArchitecture: 3, commerce: 2 } }
+          ]
+        },
+        {
+          id: "broad-2",
+          text: "What type of school task usually feels most natural to you?",
+          description: "This helps balance your preference across different learning styles.",
+          options: [
+            { label: "Maths, coding, experiments, or data", detail: "I feel confident when working with evidence, patterns, or exact answers.", scores: { tech: 2, engineering: 2, pureScience: 2, commerce: 1 } },
+            { label: "Presentations, discussions, or support roles", detail: "I like connecting with others and explaining or listening.", scores: { medicine: 1, law: 2, psychology: 2, education: 2, socialSciences: 2 } },
+            { label: "Design briefs, campaigns, or creative work", detail: "I like shaping ideas into something original and engaging.", scores: { fineArts: 2, designArchitecture: 2, commerce: 2, socialSciences: 1 } }
+          ]
+        },
+        {
+          id: "broad-3",
+          text: "If you had a free Saturday project, what sounds most appealing?",
+          description: "Choose the option you would genuinely enjoy, not the one that seems most impressive.",
+          options: [
+            { label: "Build or test something", detail: "A simple app, a robot, a model bridge, or a science investigation.", scores: { tech: 2, engineering: 3, pureScience: 2 } },
+            { label: "Support or guide others", detail: "Tutoring, volunteering, mentoring, or solving a real human problem.", scores: { medicine: 2, psychology: 2, education: 3, law: 1, socialSciences: 1 } },
+            { label: "Create or pitch an idea", detail: "A poster series, product concept, business idea, or space redesign.", scores: { fineArts: 2, designArchitecture: 3, commerce: 2 } }
+          ]
+        },
+        {
+          id: "broad-4",
+          text: "Which future impact sounds most satisfying?",
+          description: "This question rounds out your broader direction before deeper branch questions begin.",
+          options: [
+            { label: "Invent something useful or discover something new", detail: "I want to solve complex problems or advance knowledge.", scores: { tech: 2, engineering: 2, pureScience: 3 } },
+            { label: "Protect, heal, guide, or advocate for people", detail: "I want my work to improve lives directly.", scores: { medicine: 3, law: 2, psychology: 2, education: 2, socialSciences: 1 } },
+            { label: "Shape culture, spaces, or opportunities", detail: "I want to create ideas, brands, experiences, or environments.", scores: { fineArts: 2, designArchitecture: 3, commerce: 2, socialSciences: 1 } }
+          ]
+        }
+      ],
+      analytical: [
+        {
+          id: "analytical-1",
+          text: "When faced with a difficult problem, what is your instinctive first step?",
+          options: [
+            { label: "Break it into logical parts and test solutions", detail: "I want to model the problem and iterate carefully.", scores: { tech: 3, engineering: 2, pureScience: 1 } },
+            { label: "Understand the science behind it first", detail: "I want the principles before the application.", scores: { pureScience: 3, medicine: 1, engineering: 1 } },
+            { label: "Think about the real-world system it belongs to", detail: "I care about function, constraints, and implementation.", scores: { engineering: 3, tech: 1, commerce: 1 } }
+          ]
+        },
+        {
+          id: "analytical-2",
+          text: "Which topic would you most likely choose for an extended project?",
+          options: [
+            { label: "An app, algorithm, or digital tool", detail: "I like computational systems and software problem-solving.", scores: { tech: 4, commerce: 1 } },
+            { label: "A machine, structure, or energy solution", detail: "I want to build physical systems that work efficiently.", scores: { engineering: 4, designArchitecture: 1 } },
+            { label: "A scientific question that needs experiments", detail: "I want to test hypotheses and analyze results.", scores: { pureScience: 4, medicine: 1 } }
+          ]
+        },
+        {
+          id: "analytical-3",
+          text: "How do you feel about abstract maths or coding logic?",
+          options: [
+            { label: "I really enjoy it", detail: "It feels satisfying and rewarding.", scores: { tech: 3, engineering: 2, commerce: 1 } },
+            { label: "I like it when it leads to practical outcomes", detail: "I prefer applied problem-solving.", scores: { engineering: 3, tech: 1, pureScience: 1 } },
+            { label: "I prefer scientific understanding over pure abstraction", detail: "Concepts matter more to me than coding syntax.", scores: { pureScience: 2, medicine: 1 } }
+          ]
+        },
+        {
+          id: "analytical-4",
+          text: "Which environment sounds more exciting?",
+          options: [
+            { label: "A tech lab or startup team", detail: "Fast building, experimenting, and shipping ideas.", scores: { tech: 4, commerce: 1 } },
+            { label: "An engineering workshop or design lab", detail: "Hands-on systems, testing, and optimization.", scores: { engineering: 4, designArchitecture: 1 } },
+            { label: "A research lab or field study", detail: "Investigation, data collection, and scientific exploration.", scores: { pureScience: 4, medicine: 1 } }
+          ]
+        },
+        {
+          id: "analytical-5",
+          text: "What motivates you more?",
+          options: [
+            { label: "Building useful digital solutions", detail: "I like software, automation, or smart systems.", scores: { tech: 4 } },
+            { label: "Solving practical design and infrastructure problems", detail: "I like materials, forces, and systems in action.", scores: { engineering: 4, designArchitecture: 1 } },
+            { label: "Understanding deep scientific truths", detail: "Discovery itself is exciting to me.", scores: { pureScience: 4 } }
+          ]
+        },
+        {
+          id: "analytical-6",
+          text: "Which role fits you best in a team project?",
+          options: [
+            { label: "The one who structures the logic or code", detail: "I make the system work.", scores: { tech: 3, commerce: 1 } },
+            { label: "The one who manages the build and technical constraints", detail: "I balance design with feasibility.", scores: { engineering: 3, designArchitecture: 1 } },
+            { label: "The one who validates ideas with evidence", detail: "I test, compare, and analyze carefully.", scores: { pureScience: 3, medicine: 1 } }
+          ]
+        },
+        {
+          id: "analytical-7",
+          text: "What sounds most satisfying after years of study?",
+          options: [
+            { label: "Launching software people rely on", detail: "My work becomes part of daily life.", scores: { tech: 4 } },
+            { label: "Creating systems that physically improve the world", detail: "Bridges, devices, energy, or manufacturing.", scores: { engineering: 4 } },
+            { label: "Contributing to new scientific understanding", detail: "My work expands what is known.", scores: { pureScience: 4, medicine: 1 } }
+          ]
+        },
+        {
+          id: "analytical-8",
+          text: "How comfortable are you with trial, error, and iteration?",
+          options: [
+            { label: "Very comfortable in software-style iteration", detail: "I do not mind debugging and refining.", scores: { tech: 3 } },
+            { label: "Comfortable when testing physical systems or models", detail: "I like improving performance step by step.", scores: { engineering: 3 } },
+            { label: "Comfortable when collecting evidence carefully", detail: "I like rigorous testing and interpretation.", scores: { pureScience: 3, medicine: 1 } }
+          ]
+        }
+      ],
+      people: [
+        {
+          id: "people-1",
+          text: "Which situation would feel most meaningful to you?",
+          options: [
+            { label: "Helping someone recover or stay healthy", detail: "I want my work to support wellbeing directly.", scores: { medicine: 4, psychology: 1 } },
+            { label: "Helping someone understand their behavior or emotions", detail: "I am interested in what drives people internally.", scores: { psychology: 4, medicine: 1 } },
+            { label: "Guiding people through choices or systems", detail: "I like advocacy, structure, and communication.", scores: { law: 2, education: 3, socialSciences: 1 } }
+          ]
+        },
+        {
+          id: "people-2",
+          text: "What kind of conversations do you enjoy most?",
+          options: [
+            { label: "Practical conversations that solve health or life problems", detail: "I want useful outcomes that matter.", scores: { medicine: 3, education: 1 } },
+            { label: "Deep conversations about motivation and emotions", detail: "I like exploring why people think and feel as they do.", scores: { psychology: 4, socialSciences: 1 } },
+            { label: "Structured debates about fairness, policy, or rights", detail: "I like arguments, evidence, and public impact.", scores: { law: 4, socialSciences: 1 } }
+          ]
+        },
+        {
+          id: "people-3",
+          text: "Which role sounds most natural in a group?",
+          options: [
+            { label: "The calm helper in stressful moments", detail: "I can stay steady and support others.", scores: { medicine: 3, education: 1 } },
+            { label: "The listener who understands people well", detail: "Others often open up to me.", scores: { psychology: 3, education: 1 } },
+            { label: "The speaker who explains, persuades, or leads", detail: "I am comfortable presenting or arguing a case.", scores: { law: 3, education: 2, commerce: 1 } }
+          ]
+        },
+        {
+          id: "people-4",
+          text: "Which area would you be most willing to study deeply?",
+          options: [
+            { label: "Human biology and health systems", detail: "I am motivated by medicine and scientific care.", scores: { medicine: 4, pureScience: 1 } },
+            { label: "Human behavior, memory, and emotion", detail: "I am curious about the mind.", scores: { psychology: 4, socialSciences: 1 } },
+            { label: "Laws, institutions, and justice", detail: "I want to understand how systems shape society.", scores: { law: 4, socialSciences: 1 } }
+          ]
+        },
+        {
+          id: "people-5",
+          text: "What outcome would make you proudest?",
+          options: [
+            { label: "A patient or community becoming healthier", detail: "Direct care and health impact matter to me.", scores: { medicine: 4 } },
+            { label: "Someone understanding themselves better", detail: "I value personal growth and support.", scores: { psychology: 4, education: 1 } },
+            { label: "A classroom, case, or policy changing lives", detail: "I want broad human impact through guidance or systems.", scores: { law: 2, education: 3, socialSciences: 2 } }
+          ]
+        },
+        {
+          id: "people-6",
+          text: "Which setting sounds most appealing?",
+          options: [
+            { label: "Hospital, clinic, or health research space", detail: "I am comfortable with responsibility and science.", scores: { medicine: 4 } },
+            { label: "Counselling space, community center, or research study", detail: "I like understanding and supporting people.", scores: { psychology: 4, socialSciences: 1 } },
+            { label: "Courtroom, school, or policy organization", detail: "I enjoy structure, communication, and advocacy.", scores: { law: 3, education: 3 } }
+          ]
+        },
+        {
+          id: "people-7",
+          text: "How do you usually respond when someone is struggling?",
+          options: [
+            { label: "I focus on practical help and immediate action", detail: "I want to solve the problem quickly and responsibly.", scores: { medicine: 3, education: 1 } },
+            { label: "I try to understand how they are feeling first", detail: "Empathy and insight come naturally to me.", scores: { psychology: 3, education: 1 } },
+            { label: "I help them understand their options and rights", detail: "I like fairness, structure, and informed decisions.", scores: { law: 3, socialSciences: 2 } }
+          ]
+        },
+        {
+          id: "people-8",
+          text: "What kind of reading would you most likely choose?",
+          options: [
+            { label: "Health breakthroughs or medical case stories", detail: "I want science that directly helps people.", scores: { medicine: 3, pureScience: 1 } },
+            { label: "Books on behavior, habits, or mental health", detail: "The human mind fascinates me.", scores: { psychology: 3, socialSciences: 1 } },
+            { label: "Stories on justice, rights, or social change", detail: "I care about systems, policy, and impact.", scores: { law: 3, socialSciences: 2, education: 1 } }
+          ]
+        }
+      ],
+      creative: [
+        {
+          id: "creative-1",
+          text: "What kind of project would excite you most?",
+          options: [
+            { label: "Designing a brand, campaign, or business concept", detail: "I like ideas that connect creativity and strategy.", scores: { commerce: 4, fineArts: 1 } },
+            { label: "Creating visual work with personal expression", detail: "Art, illustration, animation, or storytelling feels natural.", scores: { fineArts: 4 } },
+            { label: "Designing spaces, structures, or user experiences", detail: "I enjoy visual planning with structure and purpose.", scores: { designArchitecture: 4, engineering: 1 } }
+          ]
+        },
+        {
+          id: "creative-2",
+          text: "Which compliment sounds most like you?",
+          options: [
+            { label: "You have strong ideas and can turn them into opportunities", detail: "I spot potential and think strategically.", scores: { commerce: 4, socialSciences: 1 } },
+            { label: "Your work feels original and expressive", detail: "I communicate through creativity.", scores: { fineArts: 4 } },
+            { label: "You make things look good and make sense", detail: "I balance visual appeal with structure.", scores: { designArchitecture: 4 } }
+          ]
+        },
+        {
+          id: "creative-3",
+          text: "When you notice a problem, what do you tend to imagine first?",
+          options: [
+            { label: "A better system, product, or market solution", detail: "I think in terms of value, users, and execution.", scores: { commerce: 3, tech: 1 } },
+            { label: "A visual or emotional way to express it", detail: "I think in mood, style, and narrative.", scores: { fineArts: 4 } },
+            { label: "A redesigned space, object, or layout", detail: "I see form, function, and user flow.", scores: { designArchitecture: 4, engineering: 1 } }
+          ]
+        },
+        {
+          id: "creative-4",
+          text: "Which school subject blend sounds most appealing?",
+          options: [
+            { label: "Business, economics, media, and leadership", detail: "I like strategy with communication and decision-making.", scores: { commerce: 4, law: 1 } },
+            { label: "Art, visual studies, and storytelling", detail: "I want freedom to express and create.", scores: { fineArts: 4 } },
+            { label: "Design, maths, and technical drawing", detail: "I like precise creative problem-solving.", scores: { designArchitecture: 4, engineering: 1 } }
+          ]
+        },
+        {
+          id: "creative-5",
+          text: "What kind of future work rhythm sounds best?",
+          options: [
+            { label: "Fast-paced, collaborative, and idea-driven", detail: "I like pitches, strategy, and growth.", scores: { commerce: 4 } },
+            { label: "Studio-based, expressive, and portfolio-driven", detail: "I want to create distinctive work.", scores: { fineArts: 4 } },
+            { label: "Project-based with concept development and refinement", detail: "I like client needs, iteration, and structured creativity.", scores: { designArchitecture: 4 } }
+          ]
+        },
+        {
+          id: "creative-6",
+          text: "How do you usually make decisions?",
+          options: [
+            { label: "I think about impact, value, and opportunity", detail: "I enjoy strategic trade-offs.", scores: { commerce: 3, law: 1 } },
+            { label: "I follow intuition and expressive direction", detail: "I trust creative instinct.", scores: { fineArts: 3 } },
+            { label: "I balance aesthetics with practical constraints", detail: "I want a strong design that works.", scores: { designArchitecture: 3, engineering: 1 } }
+          ]
+        },
+        {
+          id: "creative-7",
+          text: "Which result would feel most satisfying?",
+          options: [
+            { label: "Launching an idea people adopt", detail: "I like leadership, entrepreneurship, and traction.", scores: { commerce: 4, tech: 1 } },
+            { label: "Finishing a piece that feels powerful and personal", detail: "Creative expression matters deeply to me.", scores: { fineArts: 4 } },
+            { label: "Creating a design people experience every day", detail: "I want to shape environments or products meaningfully.", scores: { designArchitecture: 4 } }
+          ]
+        },
+        {
+          id: "creative-8",
+          text: "What kind of portfolio would you be most excited to build?",
+          options: [
+            { label: "Business ideas, campaigns, or case studies", detail: "I like strategic thinking in visible form.", scores: { commerce: 3, socialSciences: 1 } },
+            { label: "Artwork, animation, photography, or illustration", detail: "I want to show imagination and voice.", scores: { fineArts: 4 } },
+            { label: "Spatial concepts, product sketches, or user-centered designs", detail: "I like visual structure and purposeful planning.", scores: { designArchitecture: 4 } }
+          ]
+        }
+      ],
+      bridge: [
+        {
+          id: "bridge-1",
+          text: "Which long-term role sounds most fulfilling overall?",
+          options: [
+            { label: "Researcher, developer, or technical builder", detail: "I want to create or discover through structured thinking.", scores: { tech: 2, engineering: 2, pureScience: 2 } },
+            { label: "Advisor, advocate, educator, or health professional", detail: "I want my work to center on people.", scores: { medicine: 2, law: 2, psychology: 2, education: 2 } },
+            { label: "Creator, designer, strategist, or founder", detail: "I want to shape ideas, experiences, or ventures.", scores: { commerce: 2, fineArts: 2, designArchitecture: 2 } }
+          ]
+        },
+        {
+          id: "bridge-2",
+          text: "What matters most when choosing your future path?",
+          options: [
+            { label: "Intellectual challenge and building expertise", detail: "I want depth and mastery.", scores: { tech: 2, engineering: 2, pureScience: 2, medicine: 1 } },
+            { label: "Human impact and meaningful service", detail: "I want to help people or society in visible ways.", scores: { medicine: 2, law: 2, psychology: 2, education: 2, socialSciences: 2 } },
+            { label: "Expression, innovation, and creating new possibilities", detail: "I want originality and room to shape ideas.", scores: { commerce: 2, fineArts: 2, designArchitecture: 2 } }
+          ]
+        },
+        {
+          id: "bridge-3",
+          text: "Which statement sounds most like your best self?",
+          options: [
+            { label: "I solve hard problems carefully and logically", detail: "I like systems, evidence, and precision.", scores: { tech: 2, engineering: 2, pureScience: 2 } },
+            { label: "I connect with people and help them move forward", detail: "I like support, insight, and guidance.", scores: { medicine: 1, law: 1, psychology: 2, education: 2, socialSciences: 2 } },
+            { label: "I create strong ideas and make them real", detail: "I like vision, creativity, and execution.", scores: { commerce: 2, fineArts: 2, designArchitecture: 2 } }
+          ]
+        }
+      ]
+    };
+
+    const branchNames = {
+      analytical: "Analytical",
+      people: "People-Centric",
+      creative: "Creative / Strategic"
+    };
+
+    // Assessment state
+    const STORAGE_KEY = "careerDirectionImpactEntries";
+    const TOTAL_ASSESSMENT_QUESTIONS = questions.broad.length + questions.analytical.length + questions.bridge.length;
+    const state = {
+      branch: null,
+      path: [],
+      activeQuestions: [],
+      currentQuestionIndex: 0,
+      scores: createEmptyScores(),
+      answers: [],
+      impactSaved: false,
+      totalQuestions: 0
+    };
+
+    const stage = document.getElementById("appStage");
+    const progressText = document.getElementById("progressText");
+    const progressLabel = document.getElementById("progressLabel");
+    const progressFill = document.getElementById("progressFill");
+    const resetButton = document.getElementById("resetButton");
+
+    function createEmptyScores() {
+      return streams.reduce((accumulator, stream) => {
+        accumulator[stream] = 0;
+        return accumulator;
+      }, {});
+    }
+
+    function buildQuestionPath() {
+      const base = [...questions.broad];
+
+      if (!state.branch) {
+        return base;
+      }
+
+      return [...base, ...questions[state.branch], ...questions.bridge];
+    }
+
+    function beginAssessment() {
+      state.branch = null;
+      state.path = [];
+      state.answers = [];
+      state.scores = createEmptyScores();
+      state.impactSaved = false;
+      state.activeQuestions = buildQuestionPath();
+      state.currentQuestionIndex = 0;
+      state.totalQuestions = TOTAL_ASSESSMENT_QUESTIONS;
+      updateProgress();
+      renderCurrentView();
+    }
+
+    // Scoring logic
+    function applyScores(scoreMap) {
+      Object.entries(scoreMap).forEach(([stream, value]) => {
+        state.scores[stream] += value;
+      });
+    }
+
+    function captureBranch(option) {
+      if (state.branch || !option.branch) {
+        return;
+      }
+
+      state.branch = option.branch;
+      state.activeQuestions = buildQuestionPath();
+      state.totalQuestions = state.activeQuestions.length;
+    }
+
+    function answerQuestion(option) {
+      const currentQuestion = state.activeQuestions[state.currentQuestionIndex];
+      if (!currentQuestion) {
+        return;
+      }
+
+      applyScores(option.scores);
+      captureBranch(option);
+
+      state.answers.push({
+        questionId: currentQuestion.id,
+        question: currentQuestion.text,
+        selectedLabel: option.label,
+        scores: option.scores
+      });
+
+      state.path.push(currentQuestion.id);
+      state.currentQuestionIndex += 1;
+      updateProgress();
+      renderCurrentView();
+    }
+
+    function getRankedResults() {
+      const maxScore = Math.max(...Object.values(state.scores), 1);
+
+      return Object.entries(state.scores)
+        .map(([stream, score]) => ({
+          stream,
+          score,
+          percent: Math.round((score / maxScore) * 100),
+          ...streamInfo[stream]
+        }))
+        .sort((a, b) => b.score - a.score);
+    }
+
+    // UI rendering
+    function renderCurrentView() {
+      const hasStarted = state.path.length > 0 || state.currentQuestionIndex > 0 || state.branch;
+
+      if (!hasStarted && state.currentQuestionIndex === 0) {
+        renderIntro();
+        return;
+      }
+
+      if (state.currentQuestionIndex >= state.activeQuestions.length) {
+        renderResults();
+        return;
+      }
+
+      renderQuestion(state.activeQuestions[state.currentQuestionIndex]);
+    }
+
+    function renderIntro() {
+      stage.innerHTML = `
+        <section class="panel">
+          <div class="question-tag">Adaptive Assessment</div>
+          <h2 class="question-title">Start with broad questions, then follow the path that fits you best.</h2>
+          <p class="question-copy">
+            You will answer 15 questions total: 4 broad questions, 8 targeted questions based on your strongest direction,
+            and 3 final bridge questions that refine your top recommendations.
+          </p>
+
+          <div class="intro-grid">
+            <article class="intro-pill">
+              <strong>1. Broad classification</strong>
+              We identify whether your strongest pull is analytical, people-centered, or creative and strategic.
+            </article>
+            <article class="intro-pill">
+              <strong>2. Branch questions</strong>
+              You only see the questions that match your pathway instead of every possible question.
+            </article>
+            <article class="intro-pill">
+              <strong>3. Actionable results</strong>
+              You get a top 3 stream match, clear explanations, course ideas, next steps, and a score graph.
+            </article>
+          </div>
+
+          <div class="impact-actions" style="margin-top: 28px;">
+            <button class="button button-primary" id="startButton" type="button">Start Assessment</button>
+          </div>
+        </section>
+      `;
+
+      document.getElementById("startButton").addEventListener("click", () => {
+        state.activeQuestions = buildQuestionPath();
+        state.totalQuestions = TOTAL_ASSESSMENT_QUESTIONS;
+        updateProgress();
+        renderQuestion(state.activeQuestions[state.currentQuestionIndex]);
+      });
+    }
+
+    function renderQuestion(question) {
+      const isBroad = question.id.startsWith("broad");
+      const branchChip = state.branch ? `<span class="branch-chip">Detected pathway: ${branchNames[state.branch]}</span>` : "";
+
+      stage.innerHTML = `
+        <section class="panel">
+          <div class="question-tag">${isBroad ? "Broad Direction Question" : "Pathway Question"}</div>
+          <h2 class="question-title">${question.text}</h2>
+          <p class="question-copy">${question.description || "Choose the answer that feels most honest for you right now."}</p>
+          <div class="options-grid">
+            ${question.options.map((option, index) => `
+              <button class="option-card" type="button" data-option-index="${index}">
+                <strong>${option.label}</strong>
+                <span>${option.detail}</span>
+              </button>
+            `).join("")}
+          </div>
+          <div class="branch-chip-row">
+            <span class="branch-chip">Questions answered: ${state.currentQuestionIndex} / ${state.totalQuestions}</span>
+            ${branchChip}
+          </div>
+        </section>
+      `;
+
+      stage.querySelectorAll("[data-option-index]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const optionIndex = Number(button.getAttribute("data-option-index"));
+          answerQuestion(question.options[optionIndex]);
+        });
+      });
+    }
+
+    // Result calculation
+    function renderResults() {
+      const ranked = getRankedResults();
+      const topThree = ranked.slice(0, 3);
+      const primary = topThree[0];
+      const impactSummary = getLatestImpactSummary();
+
+      stage.innerHTML = `
+        <section class="panel">
+          <div class="result-tag">Results Ready</div>
+
+          <div class="result-hero">
+            <article class="result-main">
+              <p>Primary recommended stream</p>
+              <h2>${primary.label}</h2>
+              <p>${primary.explanation}</p>
+              <div class="percent-badge">${primary.percent}% match</div>
+            </article>
+
+            <aside class="result-sidebar">
+              <article class="result-card">
+                <h3>Why this result</h3>
+                <p>Your answer pattern weighted this stream highly across interest, working style, and motivation questions. The branch you followed helped refine this fit with more targeted prompts.</p>
+              </article>
+              <article class="result-card">
+                <h3>Suggested university courses</h3>
+                <ul class="card-list">
+                  ${primary.courses.map((course) => `<li>${course}</li>`).join("")}
+                </ul>
+              </article>
+            </aside>
+          </div>
+
+          <section class="top-three">
+            ${topThree.map((result, index) => `
+              <article class="stream-card">
+                <h3>${index + 1}. ${result.label}</h3>
+                <div class="stream-meta">${result.percent}% match</div>
+                <p>${result.explanation}</p>
+              </article>
+            `).join("")}
+          </section>
+
+          <section class="result-hero" style="margin-top: 8px;">
+            <article class="insight-card">
+              <h3>Recommended next steps</h3>
+              <ul class="card-list">
+                ${primary.actions.map((action) => `<li>${action}</li>`).join("")}
+              </ul>
+            </article>
+            <article class="insight-card">
+              <h3>Score breakdown</h3>
+              <div class="graph">
+                ${ranked.slice(0, 6).map((result) => `
+                  <div class="bar-row">
+                    <div class="bar-label">
+                      <span>${result.label}</span>
+                      <strong>${result.percent}%</strong>
+                    </div>
+                    <div class="bar-track">
+                      <div class="bar-fill" style="width: ${result.percent}%"></div>
+                    </div>
+                  </div>
+                `).join("")}
+              </div>
+            </article>
+          </section>
+
+          <section class="impact-card" style="margin-top: 18px;">
+            <h3>Anonymous impact check</h3>
+            <p class="question-copy" style="margin-bottom: 18px;">Your response is stored only in this browser using <code>localStorage</code>. This can help evaluate whether the tool improves clarity and confidence.</p>
+
+            <form id="impactForm" class="impact-form">
+              <div class="field-group">
+                <label for="clarityBefore">Did you have clarity before?</label>
+                <select id="clarityBefore" name="clarityBefore" required>
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                  <option value="Somewhat">Somewhat</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="clarityAfter">Do you feel clearer now?</label>
+                <select id="clarityAfter" name="clarityAfter" required>
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                  <option value="Slightly">Slightly</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="confidenceLevel">Confidence level (1–5)</label>
+                <select id="confidenceLevel" name="confidenceLevel" required>
+                  <option value="">Select</option>
+                  <option value="1">1 - Very unsure</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5 - Very confident</option>
+                </select>
+              </div>
+
+              <div class="field-group">
+                <label for="exploreFurther">Will you explore further?</label>
+                <select id="exploreFurther" name="exploreFurther" required>
+                  <option value="">Select</option>
+                  <option value="Yes">Yes</option>
+                  <option value="No">No</option>
+                </select>
+              </div>
+
+              <div class="impact-actions">
+                <button class="button button-primary" type="submit">Save Anonymous Response</button>
+                <button class="button button-secondary" type="button" id="restartButton">Retake Assessment</button>
+              </div>
+              <div class="impact-status" id="impactStatus">${state.impactSaved ? "Response saved in this browser." : ""}</div>
+            </form>
+          </section>
+
+          <section class="history-card" style="margin-top: 18px;">
+            <h3>Latest impact snapshot</h3>
+            <p>${impactSummary}</p>
+          </section>
+
+          <p class="footer-note">This tool suggests likely-fit academic directions based on your responses. It is a guidance tool, not a final decision-maker. Use it alongside school advice, subject strengths, and conversations with family or counsellors.</p>
+        </section>
+      `;
+
+      const impactForm = document.getElementById("impactForm");
+      impactForm.addEventListener("submit", handleImpactSubmit);
+      document.getElementById("restartButton").addEventListener("click", beginAssessment);
+    }
+
+    function updateProgress() {
+      const total = state.totalQuestions || TOTAL_ASSESSMENT_QUESTIONS;
+      const answered = Math.min(state.currentQuestionIndex, total);
+      const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+
+      progressText.textContent = answered >= total && total > 0 ? "Assessment complete" : "Career direction assessment";
+      progressLabel.textContent = `${answered} of ${total} questions answered`;
+      progressFill.style.width = `${percent}%`;
+    }
+
+    function getStoredImpactEntries() {
+      try {
+        const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveStoredImpactEntries(entries) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    }
+
+    function handleImpactSubmit(event) {
+      event.preventDefault();
+
+      const formData = new FormData(event.currentTarget);
+      const ranked = getRankedResults();
+      const payload = {
+        timestamp: new Date().toISOString(),
+        clarityBefore: formData.get("clarityBefore"),
+        clarityAfter: formData.get("clarityAfter"),
+        confidenceLevel: formData.get("confidenceLevel"),
+        exploreFurther: formData.get("exploreFurther"),
+        primaryResult: ranked[0].label,
+        topThree: ranked.slice(0, 3).map((item) => item.label)
+      };
+
+      const entries = getStoredImpactEntries();
+      entries.push(payload);
+      saveStoredImpactEntries(entries);
+      state.impactSaved = true;
+
+      const status = document.getElementById("impactStatus");
+      status.textContent = "Anonymous response saved in localStorage for this browser.";
+    }
+
+    function getLatestImpactSummary() {
+      const entries = getStoredImpactEntries();
+      const latest = entries[entries.length - 1];
+
+      if (!latest) {
+        return "No anonymous impact responses saved yet on this device.";
+      }
+
+      return `Latest saved entry: before clarity was "${latest.clarityBefore}", after using the tool clarity was "${latest.clarityAfter}", confidence level was ${latest.confidenceLevel}/5, and further exploration was "${latest.exploreFurther}".`;
+    }
+
+    function resetAssessment() {
+      beginAssessment();
+    }
+
+    resetButton.addEventListener("click", resetAssessment);
+
+    beginAssessment();
+  </script>
+</body>
 </html>
